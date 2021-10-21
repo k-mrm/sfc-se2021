@@ -48,27 +48,18 @@ NODE *
 insert_in_leaf(NODE *leaf, int key, DATA *data)
 {
   int i;
-  if (key < leaf->key[0]) {
-    for (i = leaf->nkey; i > 0; i--) {
-      leaf->chi[i] = leaf->chi[i-1] ;
-      leaf->key[i] = leaf->key[i-1] ;
-    } 
-    leaf->key[0] = key;
-    leaf->chi[0] = (NODE *)data;
+  for (i = 0; i < leaf->nkey; i++) {
+    if (key < leaf->key[i]) break;
   }
-  else {
-    for (i = 0; i < leaf->nkey; i++) {
-      if (key < leaf->key[i]) break;
-    }
-    for (int j = leaf->nkey; j > i; j--) {    
-      leaf->chi[j] = leaf->chi[j-1] ;
-      leaf->key[j] = leaf->key[j-1] ;
-    } 
+  for (int j = leaf->nkey; j > i; j--) {    
+    leaf->chi[j] = leaf->chi[j-1] ;
+    leaf->key[j] = leaf->key[j-1] ;
+  } 
 
-    /* CodeQuiz */
-    leaf->key[i] = key;
-    leaf->chi[i] = (NODE *)data;
-  }
+  /* CodeQuiz */
+  leaf->key[i] = key;
+  leaf->chi[i] = (NODE *)data;
+
   leaf->nkey++;
 
   return leaf;
@@ -118,27 +109,17 @@ void cp_leaf2tmp(NODE *leaf, TEMP *tmp) {
 
 TEMP *insert_in_temp(TEMP *temp, int key, DATA *data) {
   int i;
-  if (key < temp->key[0]) {
-    for (i = temp->nkey; i > 0; i--) {
-      temp->chi[i] = temp->chi[i-1];
-      temp->key[i] = temp->key[i-1];
-    } 
-    temp->key[0] = key;
-    temp->chi[0] = (NODE *)data;
+  for (i = 0; i < temp->nkey; i++) {
+    if (key < temp->key[i]) break;
   }
-  else {
-    for (i = 0; i < temp->nkey; i++) {
-      if (key < temp->key[i]) break;
-    }
-    for (int j = temp->nkey; j > i; j--) {    
-      temp->chi[j] = temp->chi[j-1];
-      temp->key[j] = temp->key[j-1];
-    } 
+  for (int j = temp->nkey; j > i; j--) {    
+    temp->chi[j] = temp->chi[j-1];
+    temp->key[j] = temp->key[j-1];
+  } 
 
-    /* CodeQuiz */
-    temp->key[i] = key;
-    temp->chi[i] = (NODE *)data;
-  }
+  /* CodeQuiz */
+  temp->key[i] = key;
+  temp->chi[i] = (NODE *)data;
   temp->nkey++;
 
   return temp;
@@ -152,12 +133,38 @@ void insert_in_parent(NODE *n, int key, NODE *n2) {
     newroot->chi[1] = n2;
     newroot->nkey = 1;
 
+    n->parent = newroot;
+    n2->parent = newroot;
+
     Root = newroot;
 
     return;
   }
 
-  return;
+  NODE *p = n->parent;
+
+  if(p->nkey < N-1) {
+    int i;
+    for(i = 0; i < p->nkey; i++) {
+      if(key < p->key[i]) break;
+    }
+    printf("iiii%d %d\n", i, p->nkey);
+    for(int j = p->nkey; j > i; j--) {    
+      p->key[j] = p->key[j-1];
+    } 
+    for(int j = p->nkey+1; j > i; j--) {    
+      p->chi[j] = p->chi[j-1];
+    } 
+
+    p->key[i] = key;
+    p->chi[i+1] = n2;
+
+    p->nkey++;
+  } else {
+    ;
+  }
+
+  printf("idol time!!!!!!!\n");
 }
 
 void clean_leaf(NODE *leaf) {
@@ -190,7 +197,6 @@ void cp_tmp2leaf2(NODE *leaf, TEMP *tmp) {
 }
 
 void leaf_split(NODE *leaf, int key, DATA *data) {
-  printf("split %d\n", key);
   TEMP *tmp = alloc_temp();
 
   cp_leaf2tmp(leaf, tmp);
