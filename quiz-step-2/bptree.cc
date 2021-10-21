@@ -98,13 +98,21 @@ TEMP *alloc_temp() {
   return t;
 }
 
-void cp_leaf2tmp(NODE *leaf, TEMP *tmp) {
+void cp_node2tmp(NODE *n, TEMP *tmp) {
   for(int i = 0; i < N; i++)
-    tmp->chi[i] = leaf->chi[i];
+    tmp->chi[i] = n->chi[i];
   for(int i = 0; i < N-1; i++)
-    tmp->key[i] = leaf->key[i];
+    tmp->key[i] = n->key[i];
 
-  tmp->nkey = leaf->nkey;
+  tmp->nkey = n->nkey;
+}
+
+void clean_node(NODE *n) {
+  for(int i = 0; i < N-1; i++) {
+    n->chi[i] = 0;
+    n->key[i] = 0;
+  }
+  n->nkey = 0;
 }
 
 TEMP *insert_in_temp(TEMP *temp, int key, DATA *data) {
@@ -146,37 +154,57 @@ void insert_in_parent(NODE *n, int key, NODE *n2) {
   if(p->nkey < N-1) {
     int i;
     for(i = 0; i < p->nkey; i++) {
-      if(key < p->key[i]) break;
+      if(key < p->key[i])
+        break;
     }
-    printf("iiii%d %d\n", i, p->nkey);
-    for(int j = p->nkey; j > i; j--) {    
+
+    for(int j = p->nkey; j > i; j--)
       p->key[j] = p->key[j-1];
-    } 
-    for(int j = p->nkey+1; j > i; j--) {    
+    for(int j = p->nkey+1; j > i; j--)
       p->chi[j] = p->chi[j-1];
-    } 
 
     p->key[i] = key;
     p->chi[i+1] = n2;
 
+    n2->parent = p;
+
     p->nkey++;
   } else {
-    ;
+    TEMP *tmp = alloc_temp();
+
+    cp_node2tmp(p, tmp);
+    insert_in_temp(tmp, key, (DATA *)n2);
+    clean_node(p);
+
+    NODE *p2 = alloc_node(p->parent);
+
+    int n = (int)ceil((double)(N+1)/2);
+    int i, j;
+    for(i = 0; i < n; i++)
+      p->chi[i] = tmp->chi[i];
+    for(i = 0; i < n-1; i++)
+      p->key[i] = tmp->key[i];
+    p->nkey = i;
+
+    for(i = n, j = 0; i < N+1; i++, j++)
+      p2->chi[j] = tmp->chi[i];
+    for(i = n-1, j = 0; i < N; i++, j++)
+      p2->key[j] = tmp->key[i];
+    p2->nkey = j;
+
+    int k = tmp->key[n-1];
+
+    free(tmp);
+
+    insert_in_parent(p, k, p2);
   }
 
   printf("idol time!!!!!!!\n");
 }
 
-void clean_leaf(NODE *leaf) {
-  for(int i = 0; i < N-1; i++) {
-    leaf->chi[i] = 0;
-    leaf->key[i] = 0;
-  }
-}
-
 void cp_tmp2leaf1(NODE *leaf, TEMP *tmp) {
   int i;
-  int n = (int)ceil(N/2);
+  int n = (int)ceil((double)N/2);
   for(i = 0; i < n; i++) {
     leaf->chi[i] = tmp->chi[i];
     leaf->key[i] = tmp->key[i];
@@ -187,7 +215,7 @@ void cp_tmp2leaf1(NODE *leaf, TEMP *tmp) {
 
 void cp_tmp2leaf2(NODE *leaf, TEMP *tmp) {
   int i, j;
-  int n = (int)ceil(N/2);
+  int n = (int)ceil((double)N/2);
   for(i = n, j = 0; i < N; i++, j++) {
     leaf->chi[j] = tmp->chi[i];
     leaf->key[j] = tmp->key[i];
@@ -199,17 +227,19 @@ void cp_tmp2leaf2(NODE *leaf, TEMP *tmp) {
 void leaf_split(NODE *leaf, int key, DATA *data) {
   TEMP *tmp = alloc_temp();
 
-  cp_leaf2tmp(leaf, tmp);
+  cp_node2tmp(leaf, tmp);
   insert_in_temp(tmp, key, data);
 
   NODE *l2 = alloc_leaf(leaf->parent);
   l2->chi[N-1] = leaf->chi[N-1];
   leaf->chi[N-1] = l2;
 
-  clean_leaf(leaf);
+  clean_node(leaf);
 
   cp_tmp2leaf1(leaf, tmp);
   cp_tmp2leaf2(l2, tmp);
+
+  free(tmp);
 
   int k = l2->key[0];
   
