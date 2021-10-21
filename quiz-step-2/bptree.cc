@@ -56,7 +56,6 @@ insert_in_leaf(NODE *leaf, int key, DATA *data)
     leaf->key[j] = leaf->key[j-1] ;
   } 
 
-  /* CodeQuiz */
   leaf->key[i] = key;
   leaf->chi[i] = (NODE *)data;
 
@@ -125,7 +124,6 @@ TEMP *insert_in_temp(TEMP *temp, int key, DATA *data) {
     temp->key[j] = temp->key[j-1];
   } 
 
-  /* CodeQuiz */
   temp->key[i] = key;
   temp->chi[i] = (NODE *)data;
   temp->nkey++;
@@ -165,10 +163,9 @@ void insert_in_parent(NODE *n, int key, NODE *n2) {
 
     p->key[i] = key;
     p->chi[i+1] = n2;
+    p->nkey++;
 
     n2->parent = p;
-
-    p->nkey++;
   } else {
     TEMP *tmp = alloc_temp();
 
@@ -179,10 +176,10 @@ void insert_in_parent(NODE *n, int key, NODE *n2) {
       if(key < tmp->key[i])
         break;
     }
-    for(int j = tmp->nkey+1; j > i; j--)
-      tmp->chi[j] = tmp->chi[j-1];
     for(int j = tmp->nkey; j > i; j--)
       tmp->key[j] = tmp->key[j-1];
+    for(int j = tmp->nkey+1; j > i; j--)
+      tmp->chi[j] = tmp->chi[j-1];
 
     tmp->key[i] = key;
     tmp->chi[i+1] = n2;
