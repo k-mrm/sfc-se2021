@@ -187,12 +187,6 @@ void insert_in_parent(NODE *n, int key, NODE *n2) {
 
     clean_node(p);
 
-    for(int a = 0; a < tmp->nkey; a++)
-      printf("t%d ", tmp->key[a]);
-    printf("\n");
-    for(int a = 0; a < tmp->nkey+1; a++)
-      printf("t%p ", tmp->chi[a]);
-
     NODE *p2 = alloc_node(p->parent);
 
     int n = (int)ceil((double)(N+1)/2);
