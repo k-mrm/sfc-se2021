@@ -173,13 +173,33 @@ void insert_in_parent(NODE *n, int key, NODE *n2) {
     TEMP *tmp = alloc_temp();
 
     cp_node2tmp(p, tmp);
-    insert_in_temp(tmp, key, (DATA *)n2);
+
+    int i;
+    for(i = 0; i < tmp->nkey; i++) {
+      if(key < tmp->key[i])
+        break;
+    }
+    for(int j = tmp->nkey+1; j > i; j--)
+      tmp->chi[j] = tmp->chi[j-1];
+    for(int j = tmp->nkey; j > i; j--)
+      tmp->key[j] = tmp->key[j-1];
+
+    tmp->key[i] = key;
+    tmp->chi[i+1] = n2;
+    tmp->nkey++;
+
     clean_node(p);
+
+    for(int a = 0; a < tmp->nkey; a++)
+      printf("t%d ", tmp->key[a]);
+    printf("\n");
+    for(int a = 0; a < tmp->nkey+1; a++)
+      printf("t%p ", tmp->chi[a]);
 
     NODE *p2 = alloc_node(p->parent);
 
     int n = (int)ceil((double)(N+1)/2);
-    int i, j;
+    int j;
     for(i = 0; i < n; i++)
       p->chi[i] = tmp->chi[i];
     for(i = 0; i < n-1; i++)
@@ -188,18 +208,16 @@ void insert_in_parent(NODE *n, int key, NODE *n2) {
 
     for(i = n, j = 0; i < N+1; i++, j++)
       p2->chi[j] = tmp->chi[i];
-    for(i = n-1, j = 0; i < N; i++, j++)
+    for(i = n, j = 0; i < N; i++, j++)
       p2->key[j] = tmp->key[i];
     p2->nkey = j;
 
     int k = tmp->key[n-1];
-
+    
     free(tmp);
 
     insert_in_parent(p, k, p2);
   }
-
-  printf("idol time!!!!!!!\n");
 }
 
 void cp_tmp2leaf1(NODE *leaf, TEMP *tmp) {
