@@ -2,6 +2,7 @@
 #include <vector>
 #include <sys/time.h>
 #include <cstring>
+#include <random>
 
 struct timeval
 cur_time(void)
@@ -221,15 +222,18 @@ void insert_in_parent(NODE *n, int key, NODE *n2) {
     cp_tmp2node1(&tmp, p);
     cp_tmp2node2(&tmp, p2);
 
+    for(int i = 0; i < p->nkey; i++)
+      p->chi[i]->parent = p;
+    for(int i = 0; i < p2->nkey; i++)
+      p2->chi[i]->parent = p2;
+
     int k = tmp.key[(int)ceil((double)(N+1)/2)-1];
     
-    n2->parent = n->parent = p2;
-
     insert_in_parent(p, k, p2);
   }
 }
 
-void cp_tmp2leaf1(NODE *leaf, TEMP *tmp) {
+void cp_tmp2leaf1(TEMP *tmp, NODE *leaf) {
   int i;
   int n = (int)ceil((double)N/2);
   for(i = 0; i < n; i++) {
@@ -240,7 +244,7 @@ void cp_tmp2leaf1(NODE *leaf, TEMP *tmp) {
   leaf->nkey = i;
 }
 
-void cp_tmp2leaf2(NODE *leaf, TEMP *tmp) {
+void cp_tmp2leaf2(TEMP *tmp, NODE *leaf) {
   int i, j;
   int n = (int)ceil((double)N/2);
   for(i = n, j = 0; i < N; i++, j++) {
@@ -263,8 +267,8 @@ void leaf_split(NODE *leaf, int key, DATA *data) {
 
   clean_node(leaf);
 
-  cp_tmp2leaf1(leaf, &tmp);
-  cp_tmp2leaf2(l2, &tmp);
+  cp_tmp2leaf1(&tmp, leaf);
+  cp_tmp2leaf2(&tmp, l2);
 
   int k = l2->key[0];
   
@@ -288,7 +292,6 @@ insert(int key, DATA *data)
     insert_in_leaf(leaf, key, data);
   }
   else { // split
-    // future work
     leaf_split(leaf, key, data);
   }
 }
@@ -314,6 +317,7 @@ int
 main(int argc, char *argv[])
 {
   struct timeval begin, end;
+  std::random_device rnd;
 
   init_root();
 
@@ -325,7 +329,7 @@ main(int argc, char *argv[])
     print_tree(Root);
   }
   */
-  for(int i = 0; i < 500; i++) {
+  for(int i = 500; i > 0; i--) {
     insert(i, NULL);
   }
   print_tree(Root);
