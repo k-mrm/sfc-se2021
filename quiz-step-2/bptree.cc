@@ -222,9 +222,9 @@ void insert_in_parent(NODE *n, int key, NODE *n2) {
     cp_tmp2node1(&tmp, p);
     cp_tmp2node2(&tmp, p2);
 
-    for(int i = 0; i < p->nkey; i++)
+    for(int i = 0; i < p->nkey+1; i++)
       p->chi[i]->parent = p;
-    for(int i = 0; i < p2->nkey; i++)
+    for(int i = 0; i < p2->nkey+1; i++)
       p2->chi[i]->parent = p2;
 
     int k = tmp.key[(int)ceil((double)(N+1)/2)-1];
@@ -330,7 +330,7 @@ main(int argc, char *argv[])
   }
   */
   for(int i = 500; i > 0; i--) {
-    insert(i, NULL);
+    insert(rnd() % 2999, NULL);
   }
   print_tree(Root);
   end = cur_time();
