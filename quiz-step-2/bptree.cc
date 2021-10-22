@@ -97,16 +97,6 @@ NODE *alloc_node(NODE *parent)
   return node;
 }
 
-TEMP *alloc_temp() {
-  TEMP *t;
-  if(!(t = (TEMP *)calloc(1, sizeof(*t)))) ERR;
-
-  t->isLeaf = true;
-  t->nkey = 0;
-
-  return t;
-}
-
 void cp_node2tmp(NODE *n, TEMP *tmp) {
   for(int i = 0; i < N; i++)
     tmp->chi[i] = n->chi[i];
@@ -205,8 +195,7 @@ void insert_in_parent(NODE *n, int key, NODE *n2) {
     newroot->chi[1] = n2;
     newroot->nkey = 1;
 
-    n->parent = newroot;
-    n2->parent = newroot;
+    n2->parent = n->parent = newroot;
 
     Root = newroot;
 
@@ -219,25 +208,22 @@ void insert_in_parent(NODE *n, int key, NODE *n2) {
     insert_in_node(p, key, n2);
     n2->parent = p;
   } else {
-    TEMP *tmp = alloc_temp();
+    TEMP tmp;
 
-    cp_node2tmp(p, tmp);
+    cp_node2tmp(p, &tmp);
 
-    insert_in_node_temp(tmp, key, n2);
+    insert_in_node_temp(&tmp, key, n2);
 
     clean_node(p);
 
     NODE *p2 = alloc_node(NULL);
 
-    cp_tmp2node1(tmp, p);
-    cp_tmp2node2(tmp, p2);
+    cp_tmp2node1(&tmp, p);
+    cp_tmp2node2(&tmp, p2);
 
-    int k = tmp->key[(int)ceil((double)(N+1)/2)-1];
+    int k = tmp.key[(int)ceil((double)(N+1)/2)-1];
     
-    free(tmp);
-    
-    n->parent = p2;
-    n2->parent = p2;
+    n2->parent = n->parent = p2;
 
     insert_in_parent(p, k, p2);
   }
@@ -266,10 +252,10 @@ void cp_tmp2leaf2(NODE *leaf, TEMP *tmp) {
 }
 
 void leaf_split(NODE *leaf, int key, DATA *data) {
-  TEMP *tmp = alloc_temp();
+  TEMP tmp;
 
-  cp_node2tmp(leaf, tmp);
-  insert_in_temp(tmp, key, data);
+  cp_node2tmp(leaf, &tmp);
+  insert_in_temp(&tmp, key, data);
 
   NODE *l2 = alloc_leaf(leaf->parent);
   l2->chi[N-1] = leaf->chi[N-1];
@@ -277,10 +263,8 @@ void leaf_split(NODE *leaf, int key, DATA *data) {
 
   clean_node(leaf);
 
-  cp_tmp2leaf1(leaf, tmp);
-  cp_tmp2leaf2(l2, tmp);
-
-  free(tmp);
+  cp_tmp2leaf1(leaf, &tmp);
+  cp_tmp2leaf2(l2, &tmp);
 
   int k = l2->key[0];
   
@@ -335,10 +319,16 @@ main(int argc, char *argv[])
 
   printf("-----Insert-----\n");
   begin = cur_time();
+  /*
   while (true) {
     insert(interactive(), NULL);
     print_tree(Root);
   }
+  */
+  for(int i = 0; i < 500; i++) {
+    insert(i, NULL);
+  }
+  print_tree(Root);
   end = cur_time();
 
   return 0;
