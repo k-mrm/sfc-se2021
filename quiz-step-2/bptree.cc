@@ -4,6 +4,7 @@
 #include <cstring>
 #include <random>
 #include <algorithm>
+#include <time.h>
 
 struct timeval
 cur_time(void)
@@ -325,7 +326,40 @@ interactive()
   return key;
 }
 
-#define NELEM 1000000
+#define NTAB  20000003
+
+int dohash(int n) {
+  return n % NTAB;
+}
+
+int rehash(int h) {
+  return (h + 1) % NTAB;
+}
+
+void htadd(int *tab, int key) {
+  int h = dohash(key);
+  while(tab[h] != 0) {
+    h = rehash(h);
+  }
+  tab[h] = key;
+}
+
+int htsearch(int *tab, int key) {
+  int h = dohash(key);
+  while(tab[h] != 0) {
+    if(tab[h] == key)
+      return 1;
+    h = rehash(h);
+  }
+  return 0;
+}
+
+int *make_htable() {
+  int *tab = (int *)calloc(1, sizeof(int) * NTAB);
+  return tab;
+}
+
+#define NELEM 10000000
 
 int
 main(int argc, char *argv[])
@@ -341,7 +375,6 @@ main(int argc, char *argv[])
   init_root();
 
   printf("-----Insert-----\n");
-  begin = cur_time();
   /*
   while (true) {
     insert(interactive(), NULL);
@@ -351,6 +384,7 @@ main(int argc, char *argv[])
 
   switch(argv[1][0]-'0') {
     case 1:
+      begin = cur_time();
       for(int i = 1; i <= NELEM; i++)
         insert(i, NULL);
       for(int i = 1; i <= NELEM; i++) {
@@ -361,6 +395,7 @@ main(int argc, char *argv[])
       puts("done!");
       break;
     case 2:
+      begin = cur_time();
       for(int i = NELEM; i >= 1; i--)
         insert(i, NULL);
       for(int i = 1; i <= NELEM; i++) {
@@ -371,15 +406,25 @@ main(int argc, char *argv[])
       puts("done!");
       break;
     case 3: {
-      std::vector<int> v(NELEM);
-      std::iota(v.begin(), v.end(), 1);
-      std::random_device seed_gen;
-      std::mt19937 engine(seed_gen());
+      int *ht = make_htable();
+      srand((unsigned int)time(NULL));
+      for(int i = 0; i < NELEM; i++) {
+        int r;
+        do {
+          r = rand() % 100000007;
+        } while(htsearch(ht, r));
+        htadd(ht, r);
+      }
 
-      std::shuffle(v.begin(), v.end(), engine);
-      for(int i: v)
+      for(int i = 0; i < NTAB; i++) {
+        if(ht[i] == 0)
+          continue;
         insert(i, NULL);
-      for(int i = 1; i <= NELEM; i++) {
+      }
+
+      for(int i = 0; i < NTAB; i++) {
+        if(ht[i] == 0)
+          continue;
         int res = search(i);
         if(res == 0)
           printf("%d not found\n", i);
