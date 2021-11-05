@@ -3,6 +3,7 @@
 #include <sys/time.h>
 #include <cstring>
 #include <random>
+#include <algorithm>
 
 struct timeval
 cur_time(void)
@@ -296,6 +297,17 @@ insert(int key, DATA *data)
   }
 }
 
+int search(int key) {
+  NODE *leaf = find_leaf(Root, key);
+
+  for(int i = 0; i < leaf->nkey; i++) {
+    if(leaf->key[i] == key)
+      return 1;
+  }
+
+  return 0;
+}
+
 void
 init_root(void)
 {
@@ -313,9 +325,16 @@ interactive()
   return key;
 }
 
+#define NELEM 1000000
+
 int
 main(int argc, char *argv[])
 {
+  if(argc != 2) {
+    puts("argv error");
+    return 1;
+  }
+
   struct timeval begin, end;
   std::random_device rnd;
 
@@ -329,10 +348,48 @@ main(int argc, char *argv[])
     print_tree(Root);
   }
   */
-  for(int i = 500; i > 0; i--) {
-    insert(rnd() % 2999, NULL);
+
+  switch(argv[1][0]-'0') {
+    case 1:
+      for(int i = 1; i <= NELEM; i++)
+        insert(i, NULL);
+      for(int i = 1; i <= NELEM; i++) {
+        int res = search(i);
+        if(res == 0)
+          printf("%d not found\n", i);
+      }
+      puts("done!");
+      break;
+    case 2:
+      for(int i = NELEM; i >= 1; i--)
+        insert(i, NULL);
+      for(int i = 1; i <= NELEM; i++) {
+        int res = search(i);
+        if(res == 0)
+          printf("%d not found\n", i);
+      }
+      puts("done!");
+      break;
+    case 3: {
+      std::vector<int> v(NELEM);
+      std::iota(v.begin(), v.end(), 1);
+      std::random_device seed_gen;
+      std::mt19937 engine(seed_gen());
+
+      std::shuffle(v.begin(), v.end(), engine);
+      for(int i: v)
+        insert(i, NULL);
+      for(int i = 1; i <= NELEM; i++) {
+        int res = search(i);
+        if(res == 0)
+          printf("%d not found\n", i);
+      }
+      puts("done!");
+      break;
+    }
+    default:
+      break;
   }
-  print_tree(Root);
   end = cur_time();
 
   return 0;
