@@ -8,3 +8,4 @@
 #define ERR     do {perror("ERROR"); NNN; exit(1);} while (0)
 #define RERR(fd) do {perror("Recv Error"); NNN; close(fd); pthread_exit(NULL);} while (0)
 #define ERR2    do {perror("ERROR"); NNN; pthread_exit(NULL);} while (0)
+
