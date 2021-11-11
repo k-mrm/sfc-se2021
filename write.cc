@@ -21,7 +21,7 @@ writeToStorage(const int max)
 
   fd = open("R", O_WRONLY|O_TRUNC|O_CREAT, 0644);
   if (fd == -1) ERR;
-  for (int i = 0; i < max; i++) {
+  for (int i = 0; i < 1024; i++) {
     t.key = key++;
     t.val = rand() % 100;
     write(fd, &t, sizeof(t));
@@ -31,7 +31,7 @@ writeToStorage(const int max)
   key = 0;
   fd = open("S", O_WRONLY|O_TRUNC|O_CREAT, 0644);
   if (fd == -1) ERR;
-  for (int i = 0; i < max; i++) {
+  for (int i = 0; i < 8192; i++) {
     t.key = key++;
     t.val = rand() % 100;
     write(fd, &t, sizeof(t));

@@ -33,37 +33,38 @@ printDiff(struct timeval begin, struct timeval end)
   printf("Diff: %ld us (%ld ms)\n", diff, diff/1000);
 }
 
-void
-writeToStorage(const int max)
-{
-  int fd;
-  TUPLE t;
-  int key = 0;
+#define NTAB 2049
 
-  fd = open("R", O_WRONLY|O_TRUNC|O_CREAT, 0644);
-  if (fd == -1) ERR;
-  for (int i = 0; i < max; i++) {
-    t.key = key++;
-    t.val = rand() % 100;
-    write(fd, &t, sizeof(t));
-  }
-  close(fd);
+int dohash(int n) {
+  return n % NTAB;
 }
 
-void readfromstorage() {
-  int fd;
-  TUPLE t;
-  fd = open("R", O_RDONLY, 0644);
-  if(fd < 0)
-    ERR;
-
-  while(read(fd, &t, sizeof(t)) == sizeof(t)) {
-    printf("%d %d\n", t.key, t.val);
-  }
-
-  close(fd);
+int rehash(int h) {
+  return (h + 1) % NTAB;
 }
 
+void htadd(TUPLE **tab, TUPLE *data) {
+  int h = dohash(data->key);
+  while(tab[h] != NULL) {
+    h = rehash(h);
+  }
+  tab[h] = data;
+}
+
+TUPLE *htsearch(TUPLE **tab, int key) {
+  int h = dohash(key);
+  while(tab[h] != 0) {
+    if(tab[h]->key == key)
+      return tab[h];
+    h = rehash(h);
+  }
+  return NULL;
+}
+
+TUPLE **make_htable() {
+  TUPLE **tab = (TUPLE **)calloc(1, sizeof(TUPLE *) * NTAB);
+  return tab;
+}
 
 int 
 main(void)
@@ -81,28 +82,32 @@ main(void)
   rfd = open("R", O_RDONLY); if (rfd == -1) ERR;
   sfd = open("S", O_RDONLY); if (sfd == -1) ERR;
 
-  gettimeofday(&begin, NULL);
-  while (true) {
+  while(true) {
     nr = read(rfd, bufR, NB_BUFR * sizeof(TUPLE));
     if (nr == -1) ERR; else if (nr == 0) break;
+  }
 
-    if ((lseek(sfd, 0, SEEK_SET)) == -1) ERR;
-    while (true) {
-      ns = read(sfd, bufS, NB_BUFS * sizeof(TUPLE));
-      if (ns == -1) ERR; else if (ns == 0) break;
+  TUPLE **ht = make_htable();
+  for(int i = 0; i < 1024; i++) {
+    htadd(ht, &bufR[i]);
+  }
 
-      // join
-      for (int i = 0; i < nr/(int)sizeof(TUPLE); i++) {
-        for (int j = 0; j < ns/(int)sizeof(TUPLE); j++) {
-          if (bufR[i].val == bufS[j].val) {
-            result.rkey = bufR[i].key;
-            result.rval = bufR[i].val;
-            result.skey = bufS[j].key;
-            result.sval = bufS[j].val;
-            resultVal += result.rval;
-          }
-        }
-      }
+  gettimeofday(&begin, NULL);
+  if ((lseek(sfd, 0, SEEK_SET)) == -1) ERR;
+  while (true) {
+    ns = read(sfd, bufS, NB_BUFS * sizeof(TUPLE));
+    if (ns == -1) ERR; else if (ns == 0) break;
+
+    // join
+    for (int i = 0; i < ns/(int)sizeof(TUPLE); i++) {
+      TUPLE *t = htsearch(ht, bufS[i].key);
+      if(!t)
+        continue;
+      result.rkey = t->key;
+      result.rval = t->val;
+      result.skey = bufS[i].key;
+      result.sval = bufS[i].val;
+      resultVal += result.rval;
     }
   }
   gettimeofday(&end, NULL);
