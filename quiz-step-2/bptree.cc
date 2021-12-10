@@ -277,6 +277,58 @@ void leaf_split(NODE *leaf, int key, DATA *data) {
   insert_in_parent(leaf, k, l2);
 }
 
+void
+delete_key(NODE *node, int key) {
+  int i;
+  for(i = 0; i < node->nkey; i++) {
+    if(node->key[i] == key)
+      goto found;
+  }
+  
+  printf("delete: no key\n");
+  exit(1);
+
+found:
+  for(; i < node->nkey-1; i++) {
+    node->chi[i] = node->chi[i+1];
+    node->key[i] = node->key[i+1];
+  }
+
+  node->nkey--;
+}
+
+NODE *
+chi_onlyone(NODE *node) {
+  int f = 0, memo;
+  for(int i = 0; i < N; i++) {
+    if(node->chi[i] != nullptr) {
+      memo = i;
+      f++;
+    }
+  }
+
+  return f == 1? node->chi[memo] : nullptr;
+}
+
+void
+delete_entry(NODE *leaf, int key) {
+  delete_key(leaf, key);
+
+  NODE *n;
+  if(Root == leaf && (n = chi_onlyone(leaf))) {
+    Root = n;
+    return;
+  } else if() {
+    ;
+  }
+}
+
+void
+bdelete(int key) {
+  NODE *leaf = find_leaf(Root, key);
+  delete_entry(leaf, key);
+}
+
 void 
 insert(int key, DATA *data)
 {
@@ -432,6 +484,18 @@ main(int argc, char *argv[])
       puts("done!");
       break;
     }
+    case 4:
+      insert(1, NULL);
+      insert(2, NULL);
+      insert(3, NULL);
+      print_tree(Root);
+      bdelete(3);
+      print_tree(Root);
+      for(;;) {
+        insert(interactive(), NULL);
+        print_tree(Root);
+      }
+      break;
     default:
       break;
   }
