@@ -100,6 +100,10 @@ NODE *alloc_node(NODE *parent)
   return node;
 }
 
+void free_node(NODE *node) {
+  free(node);
+}
+
 void cp_node2tmp(NODE *n, TEMP *tmp) {
   for(int i = 0; i < N; i++)
     tmp->chi[i] = n->chi[i];
@@ -278,53 +282,113 @@ void leaf_split(NODE *leaf, int key, DATA *data) {
 }
 
 void
-delete_key(NODE *node, int key) {
+delete_kd(NODE *node, int key) {
   int i;
   for(i = 0; i < node->nkey; i++) {
-    if(node->key[i] == key)
+    if(node->key[i] == key) {
+      node->key[i] = 0;
+      node->nkey--;
+
+      for(; i < node->nkey; i++) {
+        node->key[i] = node->key[i+1];
+        // node->chi[i] = node->chi[i+1];
+      }
+
       goto found;
-  }
-  
-  printf("delete: no key\n");
-  exit(1);
-
-found:
-  for(; i < node->nkey-1; i++) {
-    node->chi[i] = node->chi[i+1];
-    node->key[i] = node->key[i+1];
-  }
-
-  node->nkey--;
-}
-
-NODE *
-chi_onlyone(NODE *node) {
-  int f = 0, memo;
-  for(int i = 0; i < N; i++) {
-    if(node->chi[i] != nullptr) {
-      memo = i;
-      f++;
     }
   }
 
-  return f == 1? node->chi[memo] : nullptr;
+  puts("no");
+  exit(1);
+
+found:
+  node->key[node->nkey] = 0;
+  // node->chi[node->nkey] = NULL;
+
+  return;
+}
+
+NODE *
+root_chi_onlyone(NODE *node) {
+  if(node != Root)
+    return NULL;
+
+  printf("roooot %d\n", node->nkey);
+
+  if(node->nkey != 0)
+    return NULL;
+
+  printf("root->nkey==0 %p", node->chi[0]);
+
+  return node->chi[0];
+}
+
+NODE *
+get_prev_or_next(NODE *node, int *pred, int *kp) {
+  if(node == Root)
+    return node;
+
+  for(int i = 0; i < node->parent->nkey+1; i++) {
+    if(node->parent->chi[i] == node && node->parent->nkey != i) {
+      *pred = 0;
+      *kp = node->parent->key[i];
+      return node->parent->chi[i+1];
+    } else if(node->parent->chi[i] == node && node->parent->nkey == i) {
+      *pred = 1;
+      *kp = node->parent->key[i-1];
+      return node->parent->chi[i-1];
+    }
+  }
 }
 
 void
-delete_entry(NODE *leaf, int key) {
-  delete_key(leaf, key);
+delete_entry(NODE *node, int key) {
+  delete_kd(node, key);
 
   NODE *n;
-  if(Root == leaf && (n = chi_onlyone(leaf))) {
+  if((n = root_chi_onlyone(node))) {
+    printf("root change\n");
+    free_node(node);
+    n->parent = NULL;
     Root = n;
     return;
-  } else if() {
-    ;
+  } else if(node->nkey < N/2) {
+    puts("node->nkey < 1");
+    int pred, kp;
+    NODE *np = get_prev_or_next(node, &pred, &kp);
+    printf("kp %d: pred? %d np %p\n", kp, pred, np);
+
+    if(node->nkey + np->nkey <= N-1) {  /* coalesce */
+      printf("coalesce\n");
+      if(pred) {  /* swap variable */
+        NODE *tmp = node;
+        node = np;
+        np = tmp;
+      }
+
+      if(node->isLeaf) {
+        for(int i = 0; i < np->nkey; i++) {
+          insert_in_leaf(node, np->key[i], NULL);
+        }
+      } else {
+        ;
+      }
+
+      delete_entry(node->parent, kp);
+    } else {  /* redistribute */
+      printf("redist\n");
+      if(pred) {
+        if(!node->isLeaf) {
+          ;
+        }
+      }
+    }
   }
 }
 
 void
 bdelete(int key) {
+  printf("delete %d\n", key);
   NODE *leaf = find_leaf(Root, key);
   delete_entry(leaf, key);
 }
@@ -488,8 +552,11 @@ main(int argc, char *argv[])
       insert(1, NULL);
       insert(2, NULL);
       insert(3, NULL);
+      insert(4, NULL);
       print_tree(Root);
       bdelete(3);
+      print_tree(Root);
+      bdelete(4);
       print_tree(Root);
       for(;;) {
         insert(interactive(), NULL);
